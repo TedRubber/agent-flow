@@ -29,7 +29,15 @@ export const HOOK_COMMAND_MARKER = 'agent-flow/hook.js'
 export function getHookCommand(): string { return `node "${HOOK_SCRIPT_PATH}"` }
 
 export function hashWorkspace(workspace: string): string {
-  return crypto.createHash('sha256').update(path.resolve(workspace)).digest('hex').slice(0, WORKSPACE_HASH_LENGTH)
+  // Normalize path before hashing so Windows and Unix paths hash consistently.
+  // Claude Code sends cwd with backslashes and mixed casing on Windows —
+  // normalize to lowercase forward-slash paths to ensure the hash matches
+  // regardless of whether it comes from the extension or the hook script.
+  const normalized = path.resolve(workspace)
+    .replace(/\\/g, '/')   // backslashes → forward slashes
+    .replace(/\/$/, '')     // remove trailing slash
+    .toLowerCase()           // lowercase for case-insensitive matching on Windows
+  return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, WORKSPACE_HASH_LENGTH)
 }
 
 // ─── Discovery Files ──────────────────────────────────────────────────────────
@@ -137,7 +145,8 @@ process.stdin.on('end', () => {
   try { cwd = JSON.parse(input).cwd; } catch { process.exit(0); }
   if (!cwd) process.exit(0);
 
-  const hash = crypto.createHash('sha256').update(path.resolve(cwd)).digest('hex').slice(0, ${WORKSPACE_HASH_LENGTH});
+  const normalized = path.resolve(cwd).replace(/\\\\/g, '/').replace(/\/$/, '').toLowerCase();
+  const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, ${WORKSPACE_HASH_LENGTH});
 
   let files;
   try {

@@ -123,8 +123,15 @@ export class SessionWatcher implements vscode.Disposable {
     // Scope to the current workspace so we only watch sessions for this project
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
     if (workspaceFolder) {
-      // Claude Code encodes project paths: /Users/simon/project → -Users-simon-project
-      this.workspacePath = workspaceFolder.replace(/\//g, '-')
+      // Claude Code encodes project paths for use as directory names.
+      // On Mac/Linux: /Users/simon/project → -Users-simon-project
+      // On Windows: C:\Users\milwt\OneDrive - Rubber Inc → C--Users-milwt-OneDrive---Rubber-Inc
+      // Normalize: replace backslashes, remove colon, replace forward slashes and spaces with dashes
+      this.workspacePath = workspaceFolder
+        .replace(/\\/g, '/')   // backslashes → forward slashes
+        .replace(/:/g, '')     // remove colon after drive letter
+        .replace(/\//g, '-')   // forward slashes → dashes
+        .replace(/ /g, '-')    // spaces → dashes
       log.info(`Starting — scoped to project: ${this.workspacePath}`)
     } else {
       log.info('Starting — no workspace, scanning all projects')

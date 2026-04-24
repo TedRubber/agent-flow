@@ -71,7 +71,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "cp ../README.md ./README.md && npm run build:all",
+    "vscode:prepublish": "npm run build:all",
     "build": "node esbuild.js",
     "build:webview": "cd ../web && pnpm run build:webview",
     "build:all": "npm run build:webview && npm run build",
